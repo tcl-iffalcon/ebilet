@@ -7,7 +7,9 @@ import threading
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from functools import wraps
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -15,7 +17,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'tcdd-secret-key-2024')
+app.secret_key = os.environ.get('SECRET_KEY', 'bilet-secret-key-2024')
+
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
 
 CONFIG_FILE = 'config.json'
 LOG_FILE = 'notifications.log'
@@ -239,7 +251,27 @@ def start_scheduler():
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+    error = None
+    if request.method == 'POST':
+        if request.form.get('password') == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            session.permanent = True
+            return redirect(url_for('index'))
+        else:
+            error = 'Şifre yanlış.'
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     config = load_config()
     logs = []
@@ -331,6 +363,7 @@ def istasyon_ara():
     return jsonify(sonuclar[:10])
 
 @app.route('/settings', methods=['POST'])
+@login_required
 def save_settings():
     config = load_config()
     config['email'] = {
@@ -353,6 +386,7 @@ def save_settings():
     return redirect(url_for('index'))
 
 @app.route('/add_watch', methods=['POST'])
+@login_required
 def add_watch():
     config = load_config()
     date_input = request.form.get('date', '')
@@ -383,6 +417,7 @@ def add_watch():
     return redirect(url_for('index'))
 
 @app.route('/delete_watch/<int:watch_id>')
+@login_required
 def delete_watch(watch_id):
     config = load_config()
     config['watches'] = [w for w in config['watches'] if w.get('id') != watch_id]
@@ -391,6 +426,7 @@ def delete_watch(watch_id):
     return redirect(url_for('index'))
 
 @app.route('/toggle_watch/<int:watch_id>')
+@login_required
 def toggle_watch(watch_id):
     config = load_config()
     for w in config['watches']:
@@ -400,12 +436,14 @@ def toggle_watch(watch_id):
     return redirect(url_for('index'))
 
 @app.route('/check_now')
+@login_required
 def check_now():
     threading.Thread(target=check_all_watches).start()
     flash('🔍 Kontrol başlatıldı! Birkaç saniye içinde sonuçlar logda görünecek.', 'info')
     return redirect(url_for('index'))
 
 @app.route('/test_email')
+@login_required
 def test_email():
     config = load_config()
     result = send_email(
@@ -420,6 +458,7 @@ def test_email():
     return redirect(url_for('index'))
 
 @app.route('/clear_logs')
+@login_required
 def clear_logs():
     if os.path.exists(LOG_FILE):
         os.remove(LOG_FILE)
