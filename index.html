@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCDD Bilet Takip</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --red: #CC0000;
+    --red-dark: #990000;
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222;
+    --border: #2e2e2e;
+    --text: #e8e8e8;
+    --muted: #888;
+    --green: #22c55e;
+    --yellow: #eab308;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--red);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--red);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* ── Main Layout ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 28px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .full-width { grid-column: 1 / -1; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+
+  .card-body { padding: 18px; }
+
+  /* ── Flash messages ── */
+  .flash {
+    grid-column: 1 / -1;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border-left: 3px solid;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .flash.success { background: #052e16; border-color: var(--green); color: #86efac; }
+  .flash.error   { background: #2d0a0a; border-color: var(--red); color: #fca5a5; }
+  .flash.info    { background: #0c1a2e; border-color: #3b82f6; color: #93c5fd; }
+
+  /* ── Forms ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+  }
+
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--red);
+  }
+
+  input[type="password"] { font-family: 'IBM Plex Mono', monospace; letter-spacing: 2px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary { background: var(--red); color: white; }
+  .btn-primary:hover { background: var(--red-dark); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: #555; }
+
+  .btn-danger { background: #3d0f0f; color: #fca5a5; border: 1px solid #7f1d1d; }
+  .btn-danger:hover { background: #7f1d1d; color: white; }
+
+  .btn-green { background: #052e16; color: #86efac; border: 1px solid #14532d; }
+  .btn-green:hover { background: #14532d; }
+
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+  /* ── Watch list ── */
+  .watch-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    gap: 12px;
+    transition: border-color 0.15s;
+  }
+
+  .watch-item:last-child { margin-bottom: 0; }
+  .watch-item:hover { border-color: #444; }
+  .watch-item.inactive { opacity: 0.45; }
+
+  .watch-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-active {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .status-inactive { background: #555; }
+
+  .watch-info { flex: 1; min-width: 0; }
+
+  .watch-route {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .watch-meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .watch-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+  /* ── Logs ── */
+  .log-container {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    max-height: 320px;
+    overflow-y: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  .log-line { display: flex; gap: 8px; }
+  .log-time { color: #555; flex-shrink: 0; }
+  .log-level { flex-shrink: 0; width: 50px; }
+  .log-level.info { color: #3b82f6; }
+  .log-level.error { color: #ef4444; }
+  .log-level.warn { color: var(--yellow); }
+  .log-msg.found { color: var(--green); font-weight: 600; }
+  .log-msg.notfound { color: var(--muted); }
+  .log-msg.default { color: var(--text); }
+
+  /* ── Station hint ── */
+  .hint-box {
+    background: #0c1a0c;
+    border: 1px solid #1a3d1a;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: #86efac;
+  }
+
+  .hint-box strong { display: block; margin-bottom: 6px; color: var(--green); }
+
+  .station-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .station-table td {
+    padding: 3px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    border-bottom: 1px solid #1a3d1a;
+  }
+  .station-table td:first-child { color: #86efac; width: 180px; }
+  .station-table td:last-child { color: #555; }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .stat-num { font-size: 22px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+    .full-width, .stats-bar { grid-column: 1; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🚆</div>
+    <div>
+      <div class="logo-text">TCDD Bilet Takip</div>
+      <div class="logo-sub">ebilet.tcddtasimacilik.gov.tr</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a href="/check_now" class="btn btn-ghost btn-sm">▶ Şimdi Kontrol Et</a>
+    <a href="/test_email" class="btn btn-ghost btn-sm">✉ Test E-posta</a>
+  </div>
+</header>
+
+<main>
+
+  {% for category, message in get_flashed_messages(with_categories=True) %}
+  <div class="flash {{ category }} full-width">{{ message }}</div>
+  {% endfor %}
+
+  <!-- Stats -->
+  {% set active_count = config.watches | selectattr('active') | list | length %}
+  {% set log_count = logs | length %}
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#1a0a0a;">🎯</div>
+      <div>
+        <div class="stat-num" style="color:var(--red);">{{ config.watches | length }}</div>
+        <div class="stat-label">Toplam Takip</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#052e16;">✅</div>
+      <div>
+        <div class="stat-num" style="color:var(--green);">{{ active_count }}</div>
+        <div class="stat-label">Aktif</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#0c1a2e;">⏱</div>
+      <div>
+        <div class="stat-num" style="color:#3b82f6;">{{ config.check_interval_minutes }}</div>
+        <div class="stat-label">dk. Aralık</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#1a1505;">📋</div>
+      <div>
+        <div class="stat-num" style="color:var(--yellow);">{{ log_count }}</div>
+        <div class="stat-label">Son Log</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Watch -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">➕ Yeni Takip Ekle</span>
+    </div>
+    <div class="card-body">
+      <form action="/add_watch" method="post">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Kalkış İstasyon Adı</label>
+            <input type="text" name="from_name" placeholder="Ankara Gar" required>
+          </div>
+          <div class="form-group">
+            <label>Kalkış İstasyon Kodu</label>
+            <input type="text" name="from_code" placeholder="99828" required>
+          </div>
+          <div class="form-group">
+            <label>Varış İstasyon Adı</label>
+            <input type="text" name="to_name" placeholder="İstanbul(Pendik)" required>
+          </div>
+          <div class="form-group">
+            <label>Varış İstasyon Kodu</label>
+            <input type="text" name="to_code" placeholder="99849" required>
+          </div>
+          <div class="form-group full">
+            <label>Seyahat Tarihi</label>
+            <input type="date" name="date" required>
+          </div>
+          <div class="form-group full">
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+              🚆 Takip Ekle
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div class="hint-box">
+        <strong>📍 Popüler İstasyon Kodları</strong>
+        <table class="station-table">
+          <tr><td>Ankara Gar</td><td>99828</td></tr>
+          <tr><td>İstanbul Pendik</td><td>99849</td></tr>
+          <tr><td>İstanbul Halkalı</td><td>99846</td></tr>
+          <tr><td>İzmir Alsancak</td><td>99830</td></tr>
+          <tr><td>Konya</td><td>99832</td></tr>
+          <tr><td>Eskişehir</td><td>99840</td></tr>
+        </table>
+        <div style="margin-top:8px;color:#555;">
+          Diğer kodlar için TCDD sitesinde arama yapın ve tarayıcı network sekmesinden <code style="color:#86efac;">binisIstasyon</code> değerini bulun.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Watch List -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📋 Aktif Takipler</span>
+      <span style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">
+        {{ config.watches | length }} kayıt
+      </span>
+    </div>
+    <div class="card-body">
+      {% if config.watches %}
+        {% for watch in config.watches %}
+        <div class="watch-item {% if not watch.get('active', True) %}inactive{% endif %}">
+          <div class="watch-status {% if watch.get('active', True) %}status-active{% else %}status-inactive{% endif %}"></div>
+          <div class="watch-info">
+            <div class="watch-route">{{ watch.from_name }} → {{ watch.to_name }}</div>
+            <div class="watch-meta">{{ watch.date[:10] }} • Eklendi: {{ watch.added }}</div>
+          </div>
+          <div class="watch-actions">
+            <a href="/toggle_watch/{{ watch.id }}" class="btn btn-ghost btn-sm">
+              {% if watch.get('active', True) %}⏸{% else %}▶{% endif %}
+            </a>
+            <a href="/delete_watch/{{ watch.id }}" 
+               class="btn btn-danger btn-sm"
+               onclick="return confirm('Bu takibi silmek istediğinize emin misiniz?')">🗑</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          Henüz takip eklenmedi.<br>Sol panelden güzergah ve tarih seçin.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Email Settings -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">✉ E-posta Ayarları</span>
+      {% if config.email.sender_email %}
+        <span style="font-size:11px;color:var(--green);">● Yapılandırıldı</span>
+      {% else %}
+        <span style="font-size:11px;color:#ef4444;">● Yapılandırılmadı</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <form action="/settings" method="post">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Gönderen Gmail</label>
+            <input type="email" name="sender_email" value="{{ config.email.sender_email }}" placeholder="ornek@gmail.com">
+          </div>
+          <div class="form-group">
+            <label>Gmail Uygulama Şifresi</label>
+            <input type="password" name="sender_password" value="{{ config.email.sender_password }}" placeholder="••••••••••••••••">
+          </div>
+          <div class="form-group full">
+            <label>Bildirim Alacak E-posta</label>
+            <input type="email" name="recipient_email" value="{{ config.email.recipient_email }}" placeholder="bildirim@ornek.com">
+          </div>
+          <div class="form-group">
+            <label>Kontrol Aralığı (dakika)</label>
+            <input type="number" name="check_interval" value="{{ config.check_interval_minutes }}" min="2" max="60">
+          </div>
+          <div class="form-group">
+            <label>Render URL (self-ping)</label>
+            <input type="text" name="render_url" value="{{ config.render_url }}" placeholder="https://uygulamaadi.onrender.com">
+          </div>
+          <input type="hidden" name="smtp_host" value="smtp.gmail.com">
+          <input type="hidden" name="smtp_port" value="587">
+          <div class="form-group full">
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+              💾 Ayarları Kaydet
+            </button>
+          </div>
+        </div>
+      </form>
+      <div class="hint-box" style="margin-top:12px;background:#0c0c1a;border-color:#1a1a3d;color:#93c5fd;">
+        <strong style="color:#3b82f6;">🔑 Gmail Uygulama Şifresi Nasıl Alınır?</strong>
+        1. Google Hesabınız → Güvenlik → 2 Adımlı Doğrulama'yı açın<br>
+        2. Güvenlik → Uygulama şifreleri → "Posta" seçin<br>
+        3. Oluşturulan 16 haneli şifreyi buraya girin<br>
+        <span style="color:#555;">Normal Gmail şifreniz çalışmaz, mutlaka uygulama şifresi gerekli.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logs -->
+  <div class="card full-width">
+    <div class="card-header">
+      <span class="card-title">📜 Kontrol Logları</span>
+      <a href="/clear_logs" class="btn btn-ghost btn-sm" onclick="return confirm('Logları temizle?')">🗑 Temizle</a>
+    </div>
+    <div class="card-body">
+      <div class="log-container">
+        {% if logs %}
+          {% for line in logs %}
+            {% set parts = line.strip().split('] ') %}
+            <div class="log-line">
+              <span class="log-time">{{ parts[0][1:] if parts|length > 0 else '' }}</span>
+              {% if parts|length > 1 %}
+                {% set lvl = parts[1][1:] if parts[1].startswith('[') else 'INFO' %}
+                <span class="log-level {{ lvl.lower()[:4] }}">{{ lvl }}</span>
+                <span class="log-msg {% if '✅' in line %}found{% elif '❌' in line %}notfound{% else %}default{% endif %}">
+                  {{ parts[2:] | join('] ') if parts|length > 2 else '' }}
+                </span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <span style="color:#555;font-family:'IBM Plex Mono',monospace;">Henüz log yok. "Şimdi Kontrol Et" butonuna basın.</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</main>
+
+</body>
+</html>
