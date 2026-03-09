@@ -617,8 +617,7 @@
   </div>
   <div class="header-actions">
     <a href="/check_now" class="btn btn-ghost btn-sm">▶ Şimdi Kontrol Et</a>
-    <a href="/test_email" class="btn btn-ghost btn-sm">✉ Test E-posta</a>
-    <a href="/logout" class="btn btn-ghost btn-sm" style="color:#DC2626;border-color:#FECACA;" onclick="return confirm('Çıkış yapmak istiyor musunuz?')">⎋ Çıkış</a>
+    <a href="/ayarlar" class="btn btn-ghost btn-sm">⚙ Ayarlar</a>
   </div>
 </header>
 
@@ -760,55 +759,27 @@
     </div>
   </div>
 
-  <!-- Email Settings -->
+  <!-- Settings shortcut -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">✉ E-posta Ayarları</span>
+      <span class="card-title">⚙ Bildirim Ayarları</span>
       {% if config.email.sender_email %}
         <span style="font-size:11px;color:var(--green);font-weight:500;">● Yapılandırıldı</span>
       {% else %}
         <span style="font-size:11px;color:var(--red);font-weight:500;">● Yapılandırılmadı</span>
       {% endif %}
     </div>
-    <div class="card-body">
-      <form action="/settings" method="post">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Gönderen Gmail</label>
-            <input type="email" name="sender_email" value="{{ config.email.sender_email }}" placeholder="ornek@gmail.com">
-          </div>
-          <div class="form-group">
-            <label>Gmail Uygulama Şifresi</label>
-            <input type="password" name="sender_password" value="{{ config.email.sender_password }}" placeholder="••••••••••••••••">
-          </div>
-          <div class="form-group full">
-            <label>Bildirim Alacak E-posta</label>
-            <input type="email" name="recipient_email" value="{{ config.email.recipient_email }}" placeholder="bildirim@ornek.com">
-          </div>
-          <div class="form-group">
-            <label>Kontrol Aralığı (dakika)</label>
-            <input type="number" name="check_interval" value="{{ config.check_interval_minutes }}" min="2" max="60">
-          </div>
-          <div class="form-group">
-            <label>Render URL (self-ping)</label>
-            <input type="text" name="render_url" value="{{ config.render_url }}" placeholder="https://uygulamaadi.onrender.com">
-          </div>
-          <input type="hidden" name="smtp_host" value="smtp.gmail.com">
-          <input type="hidden" name="smtp_port" value="587">
-          <div class="form-group full">
-            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
-              💾 Ayarları Kaydet
-            </button>
-          </div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+      {% if config.email.sender_email %}
+        <div style="font-size:13px;color:var(--text-secondary);">
+          Bildirimler <strong style="color:var(--text);">{{ config.email.recipient_email }}</strong> adresine gönderiliyor.
         </div>
-      </form>
-      <div class="gmail-hint">
-        <strong>🔑 Gmail Uygulama Şifresi Nasıl Alınır?</strong>
-        1. Google Hesabınız → Güvenlik → 2 Adımlı Doğrulama'yı açın<br>
-        2. Güvenlik → Uygulama şifreleri → "Posta" seçin<br>
-        3. Oluşturulan 16 haneli şifreyi buraya girin<br>
-        <span style="color:#B45309;">Normal Gmail şifreniz çalışmaz, mutlaka uygulama şifresi gerekli.</span>
-      </div>
+      {% else %}
+        <div style="font-size:13px;color:var(--text-muted);">
+          Henüz e-posta ayarı yapılmamış. Bilet bulunduğunda bildirim almak için ayarları yapılandırın.
+        </div>
+      {% endif %}
+      <a href="/ayarlar" class="btn btn-primary" style="width:100%;justify-content:center;">⚙ Ayarları Yapılandır</a>
     </div>
   </div>
 
