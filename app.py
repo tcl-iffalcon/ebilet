@@ -253,6 +253,43 @@ def index():
 def ping():
     return jsonify({"status": "ok", "time": datetime.now().isoformat()})
 
+@app.route('/istasyon-ara')
+def istasyon_ara():
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify([])
+    try:
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Origin': 'https://ebilet.tcddtasimacilik.gov.tr',
+            'Referer': 'https://ebilet.tcddtasimacilik.gov.tr/',
+        }
+        resp = requests.post(
+            'https://ebilet.tcddtasimacilik.gov.tr/view/eybis/tnmEybis/tcddWebApiProxy',
+            headers=headers,
+            json={
+                "kanalKodu": "3",
+                "dil": "0",
+                "pageId": "IstasyonAra",
+                "jsonFor": json.dumps({"istasyonAdi": q})
+            },
+            timeout=8
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            istasyonlar = data.get('istasyonList', [])
+            sonuclar = [
+                {"ad": i.get("istasyonAdi", ""), "kod": str(i.get("istasyonKodu", ""))}
+                for i in istasyonlar
+                if i.get("istasyonAdi") and i.get("istasyonKodu")
+            ]
+            return jsonify(sonuclar[:10])
+    except Exception as e:
+        logger.warning(f"İstasyon arama hatası: {e}")
+    return jsonify([])
+
 @app.route('/settings', methods=['POST'])
 def save_settings():
     config = load_config()

@@ -351,6 +351,56 @@
   .stat-num { font-size: 22px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
   .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
+  /* ── Autocomplete ── */
+  .autocomplete-wrap { position: relative; }
+
+  .autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: #1e1e1e;
+    border: 1px solid var(--red);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    z-index: 200;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .autocomplete-list.open { display: block; }
+
+  .autocomplete-item {
+    padding: 9px 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    border-bottom: 1px solid #2a2a2a;
+    transition: background 0.1s;
+  }
+
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover, .autocomplete-item.selected { background: #2a0000; }
+
+  .autocomplete-item .ac-name { color: var(--text); }
+  .autocomplete-item .ac-code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--red);
+    background: #1a0000;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .autocomplete-loading {
+    padding: 10px 12px;
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+  }
+
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -429,21 +479,23 @@
     <div class="card-body">
       <form action="/add_watch" method="post">
         <div class="form-grid">
-          <div class="form-group">
-            <label>Kalkış İstasyon Adı</label>
-            <input type="text" name="from_name" placeholder="Ankara Gar" required>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Kalkış İstasyonu</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="from_name_input" placeholder="Yazmaya başlayın... (örn: Ankara)" autocomplete="off">
+              <div class="autocomplete-list" id="from_list"></div>
+            </div>
+            <input type="hidden" name="from_name" id="from_name">
+            <input type="hidden" name="from_code" id="from_code">
           </div>
-          <div class="form-group">
-            <label>Kalkış İstasyon Kodu</label>
-            <input type="text" name="from_code" placeholder="99828" required>
-          </div>
-          <div class="form-group">
-            <label>Varış İstasyon Adı</label>
-            <input type="text" name="to_name" placeholder="İstanbul(Pendik)" required>
-          </div>
-          <div class="form-group">
-            <label>Varış İstasyon Kodu</label>
-            <input type="text" name="to_code" placeholder="99849" required>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Varış İstasyonu</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="to_name_input" placeholder="Yazmaya başlayın... (örn: Konya)" autocomplete="off">
+              <div class="autocomplete-list" id="to_list"></div>
+            </div>
+            <input type="hidden" name="to_name" id="to_name">
+            <input type="hidden" name="to_code" id="to_code">
           </div>
           <div class="form-group full">
             <label>Seyahat Tarihi</label>
@@ -593,5 +645,105 @@
 
 </main>
 
+<script>
+function makeAutocomplete(inputId, listId, nameHiddenId, codeHiddenId) {
+  const input = document.getElementById(inputId);
+  const list  = document.getElementById(listId);
+  const nameH = document.getElementById(nameHiddenId);
+  const codeH = document.getElementById(codeHiddenId);
+  let timer = null;
+  let selectedIdx = -1;
+  let results = [];
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    nameH.value = '';
+    codeH.value = '';
+    clearTimeout(timer);
+    if (q.length < 2) { closeList(); return; }
+    list.innerHTML = '<div class="autocomplete-loading">Aranıyor...</div>';
+    list.classList.add('open');
+    timer = setTimeout(() => fetchStations(q), 350);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    const items = list.querySelectorAll('.autocomplete-item');
+    if (e.key === 'ArrowDown') {
+      selectedIdx = Math.min(selectedIdx + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('selected', i === selectedIdx));
+      e.preventDefault();
+    } else if (e.key === 'ArrowUp') {
+      selectedIdx = Math.max(selectedIdx - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('selected', i === selectedIdx));
+      e.preventDefault();
+    } else if (e.key === 'Enter' && selectedIdx >= 0) {
+      items[selectedIdx]?.click();
+      e.preventDefault();
+    } else if (e.key === 'Escape') {
+      closeList();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !list.contains(e.target)) closeList();
+  });
+
+  function fetchStations(q) {
+    fetch('/istasyon-ara?q=' + encodeURIComponent(q))
+      .then(r => r.json())
+      .then(data => {
+        results = data;
+        selectedIdx = -1;
+        if (!data.length) {
+          list.innerHTML = '<div class="autocomplete-loading">Sonuç bulunamadı</div>';
+          return;
+        }
+        list.innerHTML = data.map((s, i) =>
+          `<div class="autocomplete-item" data-idx="${i}">
+            <span class="ac-name">${s.ad}</span>
+            <span class="ac-code">${s.kod}</span>
+          </div>`
+        ).join('');
+        list.querySelectorAll('.autocomplete-item').forEach(el => {
+          el.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const idx = parseInt(el.dataset.idx);
+            selectStation(results[idx]);
+          });
+        });
+      })
+      .catch(() => {
+        list.innerHTML = '<div class="autocomplete-loading">Bağlantı hatası</div>';
+      });
+  }
+
+  function selectStation(s) {
+    input.value = s.ad;
+    nameH.value = s.ad;
+    codeH.value = s.kod;
+    input.style.borderColor = 'var(--green)';
+    closeList();
+  }
+
+  function closeList() {
+    list.classList.remove('open');
+    list.innerHTML = '';
+    selectedIdx = -1;
+  }
+}
+
+makeAutocomplete('from_name_input', 'from_list', 'from_name', 'from_code');
+makeAutocomplete('to_name_input',   'to_list',   'to_name',   'to_code');
+
+// Form validation
+document.querySelector('form[action="/add_watch"]').addEventListener('submit', function(e) {
+  const fromCode = document.getElementById('from_code').value;
+  const toCode   = document.getElementById('to_code').value;
+  if (!fromCode || !toCode) {
+    e.preventDefault();
+    alert('Lütfen listeden bir istasyon seçin.');
+  }
+});
+</script>
 </body>
 </html>
