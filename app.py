@@ -271,7 +271,6 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/')
-@login_required
 def index():
     config = load_config()
     logs = []
@@ -362,31 +361,29 @@ def istasyon_ara():
     ]
     return jsonify(sonuclar[:10])
 
-@app.route('/settings', methods=['POST'])
+@app.route('/ayarlar', methods=['GET', 'POST'])
 @login_required
-def save_settings():
+def ayarlar():
     config = load_config()
-    config['email'] = {
-        'smtp_host': request.form.get('smtp_host', 'smtp.gmail.com'),
-        'smtp_port': int(request.form.get('smtp_port', 587)),
-        'sender_email': request.form.get('sender_email', ''),
-        'sender_password': request.form.get('sender_password', ''),
-        'recipient_email': request.form.get('recipient_email', ''),
-    }
-    config['check_interval_minutes'] = int(request.form.get('check_interval', 5))
-    config['render_url'] = request.form.get('render_url', '')
-    save_config(config)
-
-    # Restart scheduler with new interval
-    if scheduler.get_job('check_watches'):
-        scheduler.remove_job('check_watches')
-    scheduler.add_job(check_all_watches, IntervalTrigger(minutes=config['check_interval_minutes']), id='check_watches')
-
-    flash('✅ Ayarlar kaydedildi!', 'success')
-    return redirect(url_for('index'))
+    if request.method == 'POST':
+        config['email'] = {
+            'smtp_host': request.form.get('smtp_host', 'smtp.gmail.com'),
+            'smtp_port': int(request.form.get('smtp_port', 587)),
+            'sender_email': request.form.get('sender_email', ''),
+            'sender_password': request.form.get('sender_password', ''),
+            'recipient_email': request.form.get('recipient_email', ''),
+        }
+        config['check_interval_minutes'] = int(request.form.get('check_interval', 5))
+        config['render_url'] = request.form.get('render_url', '')
+        save_config(config)
+        if scheduler.get_job('check_watches'):
+            scheduler.remove_job('check_watches')
+        scheduler.add_job(check_all_watches, IntervalTrigger(minutes=config['check_interval_minutes']), id='check_watches')
+        flash('✅ Ayarlar kaydedildi!', 'success')
+        return redirect(url_for('ayarlar'))
+    return render_template('settings.html', config=config)
 
 @app.route('/add_watch', methods=['POST'])
-@login_required
 def add_watch():
     config = load_config()
     date_input = request.form.get('date', '')
@@ -417,7 +414,6 @@ def add_watch():
     return redirect(url_for('index'))
 
 @app.route('/delete_watch/<int:watch_id>')
-@login_required
 def delete_watch(watch_id):
     config = load_config()
     config['watches'] = [w for w in config['watches'] if w.get('id') != watch_id]
@@ -426,7 +422,6 @@ def delete_watch(watch_id):
     return redirect(url_for('index'))
 
 @app.route('/toggle_watch/<int:watch_id>')
-@login_required
 def toggle_watch(watch_id):
     config = load_config()
     for w in config['watches']:
@@ -436,7 +431,6 @@ def toggle_watch(watch_id):
     return redirect(url_for('index'))
 
 @app.route('/check_now')
-@login_required
 def check_now():
     threading.Thread(target=check_all_watches).start()
     flash('🔍 Kontrol başlatıldı! Birkaç saniye içinde sonuçlar logda görünecek.', 'info')
@@ -447,7 +441,7 @@ def check_now():
 def test_email():
     config = load_config()
     result = send_email(
-        "🚆 TCDD Takip - Test E-postası",
+        "Bilet Takip - Test E-postası",
         "<h2>Test başarılı!</h2><p>E-posta bildirimleri düzgün çalışıyor.</p>",
         config
     )
@@ -455,10 +449,9 @@ def test_email():
         flash('✅ Test e-postası gönderildi!', 'success')
     else:
         flash('❌ Test e-postası gönderilemedi. E-posta ayarlarını kontrol edin.', 'error')
-    return redirect(url_for('index'))
+    return redirect(url_for('ayarlar'))
 
 @app.route('/clear_logs')
-@login_required
 def clear_logs():
     if os.path.exists(LOG_FILE):
         os.remove(LOG_FILE)
