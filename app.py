@@ -265,13 +265,26 @@ def logout():
 
 @app.route('/')
 def index():
+    # Her ziyaretçiye benzersiz bir session ID ver
+    if 'user_id' not in session:
+        session['user_id'] = secrets.token_hex(16)
+        session.permanent = True
+
     config = load_config()
+    user_id = session['user_id']
+
+    # Admin tüm takipleri görür, kullanıcı sadece kendinkini
+    if session.get('logged_in'):
+        user_watches = config.get('watches', [])
+    else:
+        user_watches = [w for w in config.get('watches', []) if w.get('user_id') == user_id]
+
     logs = []
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE, 'r', encoding='utf-8') as f:
             logs = f.readlines()[-50:]
         logs = list(reversed(logs))
-    return render_template('index.html', config=config, logs=logs)
+    return render_template('index.html', config=config, user_watches=user_watches, logs=logs)
 
 @app.route('/ping')
 def ping():
@@ -382,9 +395,16 @@ def add_watch():
         date_formatted = date_input + ' 00:00:00'
 
     user_email = request.form.get('user_email', '').strip()
+
+    # Session ID yoksa oluştur
+    if 'user_id' not in session:
+        session['user_id'] = secrets.token_hex(16)
+        session.permanent = True
+
     watch = {
         'id': int(datetime.now().timestamp()),
         'cancel_token': secrets.token_urlsafe(24),
+        'user_id': session['user_id'],
         'from_code': request.form.get('from_code', '').strip(),
         'from_name': request.form.get('from_name', '').strip(),
         'to_code': request.form.get('to_code', '').strip(),

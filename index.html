@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilet Takip</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --blue: #2563EB;
+    --blue-dark: #1D4ED8;
+    --blue-light: #EFF6FF;
+    --blue-mid: #DBEAFE;
+    --bg: #F1F5F9;
+    --surface: #FFFFFF;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --text: #0F172A;
+    --text-2: #475569;
+    --text-3: #94A3B8;
+    --green: #16A34A;
+    --green-bg: #F0FDF4;
+    --green-border: #BBF7D0;
+    --red: #DC2626;
+    --red-bg: #FEF2F2;
+    --red-border: #FECACA;
+    --amber: #D97706;
+    --amber-bg: #FFFBEB;
+    --shadow-xs: 0 1px 2px rgba(15,23,42,0.04);
+    --shadow-sm: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+    --shadow-md: 0 4px 12px rgba(15,23,42,0.06), 0 2px 4px rgba(15,23,42,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .logo { display: flex; align-items: center; gap: 10px; }
+
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--blue);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.35);
+  }
+
+  .logo-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  .header-right { display: flex; align-items: center; gap: 8px; }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #3B82F6 100%);
+    padding: 40px 28px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #BFDBFE;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 100px;
+    margin-bottom: 14px;
+  }
+
+  .hero h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .hero p {
+    font-size: 14px;
+    color: #BFDBFE;
+    max-width: 420px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Stats ── */
+  .stats-strip {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .stat-item {
+    flex: 1;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-right: 1px solid var(--border);
+  }
+
+  .stat-item:last-child { border-right: none; }
+
+  .stat-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .stat-num {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* ── Main layout ── */
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 24px 20px;
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .full { grid-column: 1 / -1; }
+
+  /* ── Flash ── */
+  .flash {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid;
+    animation: slideDown 0.2s ease;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .flash.success { background: var(--green-bg);  border-color: var(--green-border); color: var(--green); }
+  .flash.error   { background: var(--red-bg);    border-color: var(--red-border);   color: var(--red); }
+  .flash.info    { background: var(--blue-light); border-color: var(--blue-mid);    color: var(--blue); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .card-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-3);
+  }
+
+  .card-body { padding: 18px; }
+
+  /* ── Form ── */
+  .form-stack { display: flex; flex-direction: column; gap: 12px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .fg { display: flex; flex-direction: column; gap: 5px; }
+
+  .fg label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-2);
+  }
+
+  .fg input {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+  }
+
+  .fg input:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+
+  .fg input.selected {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.1);
+  }
+
+  /* ── Date picker ── */
+  .dp-wrap { position: relative; }
+
+  .dp-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+  }
+
+  .dp-trigger:hover { border-color: var(--border-strong); }
+  .dp-trigger.open, .dp-trigger.has-value {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+
+  .dp-trigger .placeholder { color: var(--text-3); font-weight: 400; }
+  .dp-trigger .cal-ico { color: var(--text-3); font-size: 13px; }
+
+  .dp-popup {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    z-index: 300;
+    padding: 14px;
+    width: 272px;
+    display: none;
+    animation: popIn 0.15s ease;
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .dp-popup.open { display: block; }
+
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .cal-nav-btn {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    color: var(--text-2);
+    transition: background 0.1s;
+  }
+  .cal-nav-btn:hover { background: var(--bg); }
+
+  .cal-month { font-size: 13px; font-weight: 700; color: var(--text); }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+
+  .cal-wd {
+    text-align: center;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    padding: 4px 0 6px;
+    letter-spacing: 0.3px;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    color: var(--text);
+  }
+
+  .cal-day:hover:not(.disabled):not(.selected) { background: var(--blue-light); color: var(--blue); }
+  .cal-day.other { color: var(--text-3); }
+  .cal-day.today { font-weight: 800; color: var(--blue); }
+  .cal-day.selected { background: var(--blue); color: #fff; font-weight: 700; }
+  .cal-day.disabled { color: var(--border-strong); cursor: not-allowed; }
+
+  /* ── Autocomplete ── */
+  .ac-wrap { position: relative; }
+
+  .ac-list {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0; right: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--blue);
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    z-index: 200;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .ac-list.open { display: block; }
+
+  .ac-item {
+    padding: 9px 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    font-weight: 500;
+  }
+
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.sel { background: var(--blue-light); }
+  .ac-item .ac-name { color: var(--text); }
+  .ac-item .ac-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--blue);
+    background: var(--blue-light);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .ac-msg {
+    padding: 10px 12px;
+    color: var(--text-3);
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--blue);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(37,99,235,0.4);
+  }
+  .btn-primary:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.35); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+  .btn-danger {
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid var(--red-border);
+  }
+  .btn-danger:hover { background: #FEE2E2; }
+
+  .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 7px; }
+
+  /* ── Watch list ── */
+  .watch-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    gap: 12px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    margin-bottom: 8px;
+    background: var(--surface);
+  }
+
+  .watch-item:last-child { margin-bottom: 0; }
+  .watch-item:hover { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.06); }
+  .watch-item.inactive { opacity: 0.4; }
+
+  .w-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .w-dot.active {
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.2);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .w-dot.inactive { background: var(--text-3); }
+
+  .w-info { flex: 1; min-width: 0; }
+
+  .w-route {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.2px;
+  }
+
+  .w-meta {
+    font-size: 11px;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .w-email-tag {
+    background: var(--blue-light);
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+
+  .w-actions { display: flex; gap: 5px; flex-shrink: 0; }
+
+  .empty {
+    text-align: center;
+    padding: 36px 20px;
+    color: var(--text-3);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .empty-ico { font-size: 32px; margin-bottom: 10px; opacity: 0.4; }
+
+  /* ── Logs ── */
+  .log-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.8;
+  }
+
+  .log-line { display: flex; gap: 8px; align-items: baseline; }
+  .log-time { color: var(--text-3); flex-shrink: 0; }
+  .log-lvl  { flex-shrink: 0; width: 44px; font-weight: 600; }
+  .log-lvl.info  { color: var(--blue); }
+  .log-lvl.erro  { color: var(--red); }
+  .log-lvl.warn  { color: var(--amber); }
+  .log-msg.found    { color: var(--green); font-weight: 600; }
+  .log-msg.notfound { color: var(--text-3); }
+  .log-msg.default  { color: var(--text-2); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+  @media (max-width: 760px) {
+    main { grid-template-columns: 1fr; }
+    .full { grid-column: 1; }
+    .stats-strip { flex-wrap: wrap; }
+    .stat-item { min-width: 50%; }
+    .form-row { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">🚄</div>
+    <span class="logo-name">Bilet Takip</span>
+  </div>
+  <div class="header-right">
+    <a href="/check_now" class="btn btn-ghost btn-sm">▶ Kontrol Et</a>
+    <a href="/ayarlar" class="btn btn-ghost btn-sm">⚙ Ayarlar</a>
+  </div>
+</header>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">🔔 Otomatik İzleme</div>
+  <h1>Bilet çıkınca<br>seni haberdar edelim</h1>
+  <p>Güzergahını ve tarihini gir, e-posta adresini bırak.<br>Koltuk müsait olunca anında bildirim gönderelim.</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-strip">
+  {% set active_count = user_watches | selectattr('active') | list | length %}
+  <div class="stat-item">
+    <div class="stat-dot" style="background:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.15);"></div>
+    <div>
+      <div class="stat-num" style="color:var(--blue);">{{ user_watches | length }}</div>
+      <div class="stat-lbl">Takibim</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-dot" style="background:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,0.15);"></div>
+    <div>
+      <div class="stat-num" style="color:var(--green);">{{ active_count }}</div>
+      <div class="stat-lbl">Aktif</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-dot" style="background:var(--amber);box-shadow:0 0 0 3px rgba(217,119,6,0.15);"></div>
+    <div>
+      <div class="stat-num" style="color:var(--amber);">{{ config.check_interval_minutes }}</div>
+      <div class="stat-lbl">dk. Aralık</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-dot" style="background:var(--text-3);"></div>
+    <div>
+      <div class="stat-num" style="color:var(--text-2);">{{ config.watches | length }}</div>
+      <div class="stat-lbl">Tüm Takipler</div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  {% for category, message in get_flashed_messages(with_categories=True) %}
+  <div class="flash {{ category }} full">{{ message }}</div>
+  {% endfor %}
+
+  <!-- Add Watch -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">➕ Yeni Takip</span>
+    </div>
+    <div class="card-body">
+      <form action="/add_watch" method="post">
+        <div class="form-stack">
+
+          <div class="fg">
+            <label>Kalkış İstasyonu</label>
+            <div class="ac-wrap">
+              <input type="text" id="from_inp" placeholder="Ankara, İstanbul..." autocomplete="off">
+              <div class="ac-list" id="from_list"></div>
+            </div>
+            <input type="hidden" name="from_name" id="from_name">
+            <input type="hidden" name="from_code" id="from_code">
+          </div>
+
+          <div class="fg">
+            <label>Varış İstasyonu</label>
+            <div class="ac-wrap">
+              <input type="text" id="to_inp" placeholder="Konya, İzmir..." autocomplete="off">
+              <div class="ac-list" id="to_list"></div>
+            </div>
+            <input type="hidden" name="to_name" id="to_name">
+            <input type="hidden" name="to_code" id="to_code">
+          </div>
+
+          <div class="fg">
+            <label>Seyahat Tarihi</label>
+            <div class="dp-wrap" id="dpWrap">
+              <div class="dp-trigger" id="dpTrigger" onclick="toggleCal()">
+                <span id="dpText" class="placeholder">Tarih seçin</span>
+                <span class="cal-ico">📅</span>
+              </div>
+              <div class="dp-popup" id="dpPopup"></div>
+            </div>
+            <input type="hidden" name="date" id="dpVal" required>
+          </div>
+
+          <div class="fg">
+            <label>E-posta Adresiniz</label>
+            <input type="email" name="user_email" placeholder="bildirim@ornek.com" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;">
+            🔔 Takip Başlat
+          </button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Watch List -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">📋 Takip Listem</span>
+      <span style="font-size:11px;color:var(--text-3);font-family:'JetBrains Mono',monospace;">{{ user_watches | length }} kayıt</span>
+    </div>
+    <div class="card-body">
+      {% if user_watches %}
+        {% for watch in user_watches %}
+        <div class="watch-item {% if not watch.get('active', True) %}inactive{% endif %}">
+          <div class="w-dot {% if watch.get('active', True) %}active{% else %}inactive{% endif %}"></div>
+          <div class="w-info">
+            <div class="w-route">{{ watch.from_name }} → {{ watch.to_name }}</div>
+            <div class="w-meta">
+              <span>{{ watch.date[:10] }}</span>
+              <span>·</span>
+              <span class="w-email-tag">{{ watch.user_email }}</span>
+            </div>
+          </div>
+          <div class="w-actions">
+            {% if session.get('logged_in') %}
+            <a href="/toggle_watch/{{ watch.id }}" class="btn btn-ghost btn-sm" title="Duraklat/Devam">
+              {% if watch.get('active', True) %}⏸{% else %}▶{% endif %}
+            </a>
+            {% endif %}
+            <a href="/iptal/{{ watch.cancel_token }}"
+               class="btn btn-danger btn-sm"
+               onclick="return confirm('Bu takibi iptal etmek istediğinize emin misiniz?')"
+               title="İptal Et">✕</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">
+          <div class="empty-ico">🔍</div>
+          Henüz takip eklemediniz.<br>Sol taraftan güzergah ve tarih seçin.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Logs -->
+  <div class="card full">
+    <div class="card-head">
+      <span class="card-title">📜 Kontrol Logları</span>
+      {% if session.get('logged_in') %}
+      <a href="/clear_logs" class="btn btn-ghost btn-sm" onclick="return confirm('Logları temizle?')">🗑 Temizle</a>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div class="log-box">
+        {% if logs %}
+          {% for line in logs %}
+            {% set parts = line.strip().split('] ') %}
+            <div class="log-line">
+              <span class="log-time">{{ parts[0][1:] if parts|length > 0 else '' }}</span>
+              {% if parts|length > 1 %}
+                {% set lvl = parts[1][1:] if parts[1].startswith('[') else 'INFO' %}
+                <span class="log-lvl {{ lvl.lower()[:4] }}">{{ lvl }}</span>
+                <span class="log-msg {% if '✅' in line %}found{% elif '❌' in line %}notfound{% else %}default{% endif %}">
+                  {{ parts[2:] | join('] ') if parts|length > 2 else '' }}
+                </span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <span style="color:var(--text-3);">Henüz log yok. "Kontrol Et" butonuna basın.</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+/* ── Calendar ── */
+const TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+const TR_DAYS   = ['Pt','Sa','Ça','Pe','Cu','Ct','Pz'];
+
+let cal = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: null };
+
+function toggleCal() {
+  const popup = document.getElementById('dpPopup');
+  const trigger = document.getElementById('dpTrigger');
+  const open = popup.classList.contains('open');
+  if (open) { popup.classList.remove('open'); trigger.classList.remove('open'); }
+  else { renderCal(); popup.classList.add('open'); trigger.classList.add('open'); }
+}
+
+function renderCal() {
+  const { y, m, sel } = cal;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const first = new Date(y, m, 1);
+  const last  = new Date(y, m + 1, 0);
+  let dow = first.getDay(); dow = dow === 0 ? 6 : dow - 1;
+
+  let days = '';
+  for (let i = 0; i < dow; i++) {
+    const d = new Date(y, m, -dow + i + 1);
+    days += `<div class="cal-day other">${d.getDate()}</div>`;
+  }
+  for (let d = 1; d <= last.getDate(); d++) {
+    const date = new Date(y, m, d);
+    const past = date < today;
+    const isToday = date.getTime() === today.getTime();
+    const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    let cls = 'cal-day';
+    if (past) cls += ' disabled';
+    if (isToday) cls += ' today';
+    if (sel === ds) cls += ' selected';
+    days += `<div class="${cls}"${past ? '' : ` onclick="pickDate('${ds}')"`}>${d}</div>`;
+  }
+
+  document.getElementById('dpPopup').innerHTML = `
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="moveCal(-1)" type="button">‹</button>
+      <span class="cal-month">${TR_MONTHS[m]} ${y}</span>
+      <button class="cal-nav-btn" onclick="moveCal(1)" type="button">›</button>
+    </div>
+    <div class="cal-grid">
+      ${TR_DAYS.map(d=>`<div class="cal-wd">${d}</div>`).join('')}
+      ${days}
+    </div>`;
+}
+
+function moveCal(dir) {
+  cal.m += dir;
+  if (cal.m > 11) { cal.m = 0; cal.y++; }
+  if (cal.m < 0)  { cal.m = 11; cal.y--; }
+  renderCal();
+}
+
+function pickDate(ds) {
+  cal.sel = ds;
+  document.getElementById('dpVal').value = ds;
+  const [y,m,d] = ds.split('-');
+  const el = document.getElementById('dpText');
+  el.textContent = `${d} ${TR_MONTHS[parseInt(m)-1]} ${y}`;
+  el.classList.remove('placeholder');
+  document.getElementById('dpTrigger').classList.remove('open');
+  document.getElementById('dpTrigger').classList.add('has-value');
+  document.getElementById('dpPopup').classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('dpWrap');
+  if (!wrap.contains(e.target)) {
+    document.getElementById('dpPopup').classList.remove('open');
+    document.getElementById('dpTrigger').classList.remove('open');
+  }
+});
+
+/* ── Autocomplete ── */
+function makeAC(inputId, listId, nameId, codeId) {
+  const inp  = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  const nameH = document.getElementById(nameId);
+  const codeH = document.getElementById(codeId);
+  let timer, idx = -1, results = [];
+
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim();
+    nameH.value = ''; codeH.value = '';
+    inp.classList.remove('selected');
+    clearTimeout(timer);
+    if (q.length < 2) { close(); return; }
+    list.innerHTML = '<div class="ac-msg">Aranıyor...</div>';
+    list.classList.add('open');
+    timer = setTimeout(() => fetch('/istasyon-ara?q=' + encodeURIComponent(q))
+      .then(r => r.json())
+      .then(data => {
+        results = data; idx = -1;
+        if (!data.length) { list.innerHTML = '<div class="ac-msg">Sonuç bulunamadı</div>'; return; }
+        list.innerHTML = data.map((s,i) =>
+          `<div class="ac-item" data-i="${i}">
+            <span class="ac-name">${s.ad}</span>
+            <span class="ac-code">${s.kod}</span>
+          </div>`).join('');
+        list.querySelectorAll('.ac-item').forEach(el =>
+          el.addEventListener('mousedown', e => { e.preventDefault(); pick(results[+el.dataset.i]); }));
+      })
+      .catch(() => { list.innerHTML = '<div class="ac-msg">Bağlantı hatası</div>'; }), 350);
+  });
+
+  inp.addEventListener('keydown', e => {
+    const items = list.querySelectorAll('.ac-item');
+    if (e.key === 'ArrowDown') { idx = Math.min(idx+1, items.length-1); highlight(items); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { idx = Math.max(idx-1, 0); highlight(items); e.preventDefault(); }
+    else if (e.key === 'Enter' && idx >= 0) { items[idx]?.dispatchEvent(new MouseEvent('mousedown')); e.preventDefault(); }
+    else if (e.key === 'Escape') close();
+  });
+
+  document.addEventListener('click', e => { if (!inp.contains(e.target) && !list.contains(e.target)) close(); });
+
+  function highlight(items) { items.forEach((el,i) => el.classList.toggle('sel', i === idx)); }
+  function pick(s) { inp.value = s.ad; nameH.value = s.ad; codeH.value = s.kod; inp.classList.add('selected'); close(); }
+  function close() { list.classList.remove('open'); list.innerHTML = ''; idx = -1; }
+}
+
+makeAC('from_inp', 'from_list', 'from_name', 'from_code');
+makeAC('to_inp',   'to_list',   'to_name',   'to_code');
+
+document.querySelector('form[action="/add_watch"]').addEventListener('submit', e => {
+  if (!document.getElementById('from_code').value || !document.getElementById('to_code').value) {
+    e.preventDefault(); alert('Lütfen listeden istasyon seçin.');
+  } else if (!document.getElementById('dpVal').value) {
+    e.preventDefault(); alert('Lütfen seyahat tarihi seçin.');
+  }
+});
+</script>
+</body>
+</html>
