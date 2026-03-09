@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Takip İptal — Bilet Takip</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #F1F5F9;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px 36px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(15,23,42,0.08);
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .icon { font-size: 48px; margin-bottom: 16px; }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    margin-bottom: 10px;
+    color: #0F172A;
+  }
+
+  p {
+    font-size: 14px;
+    color: #64748B;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    background: #2563EB;
+    color: #fff;
+    transition: background 0.15s;
+  }
+
+  .btn:hover { background: #1D4ED8; }
+</style>
+</head>
+<body>
+<div class="card">
+  {% if success %}
+    <div class="icon">✅</div>
+    <h1>Takip İptal Edildi</h1>
+    <p>{{ message }}</p>
+    <p style="font-size:12px;color:#94A3B8;">Artık bu güzergah için bildirim almayacaksınız.</p>
+  {% else %}
+    <div class="icon">❌</div>
+    <h1>İptal Edilemedi</h1>
+    <p>{{ message }}</p>
+  {% endif %}
+  <a href="/" class="btn">← Ana Sayfaya Dön</a>
+</div>
+</body>
+</html>

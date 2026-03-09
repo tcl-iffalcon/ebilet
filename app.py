@@ -4,6 +4,7 @@ import logging
 import smtplib
 import requests
 import threading
+import secrets
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -18,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'bilet-secret-key-2024')
-
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
 def login_required(f):
@@ -68,32 +68,29 @@ def log_notification(message, level="INFO"):
         f.write(entry)
     logger.info(message)
 
-def send_email(subject, body, config):
+def send_email(subject, body, config, to_email=None):
     email_cfg = config.get('email', {})
-    if not all([email_cfg.get('sender_email'), email_cfg.get('sender_password'), email_cfg.get('recipient_email')]):
-        logger.warning("E-posta ayarları eksik, bildirim gönderilemiyor.")
+    recipient = to_email or email_cfg.get('recipient_email', '')
+    if not all([email_cfg.get('sender_email'), email_cfg.get('sender_password'), recipient]):
+        logger.warning("E-posta ayarları eksik.")
         return False
     try:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
         msg['From'] = email_cfg['sender_email']
-        msg['To'] = email_cfg['recipient_email']
+        msg['To'] = recipient
         msg.attach(MIMEText(body, 'html', 'utf-8'))
         with smtplib.SMTP(email_cfg['smtp_host'], email_cfg['smtp_port']) as server:
             server.starttls()
             server.login(email_cfg['sender_email'], email_cfg['sender_password'])
             server.send_message(msg)
-        log_notification(f"E-posta gönderildi: {subject}")
+        log_notification(f"E-posta gönderildi: {subject} → {recipient}")
         return True
     except Exception as e:
         log_notification(f"E-posta gönderilemedi: {e}", "ERROR")
         return False
 
-def check_tcdd_availability(watch):
-    """
-    TCDD eBilet API'sini sorgular.
-    watch: {from_code, to_code, from_name, to_name, date, seat_type}
-    """
+def check_availability(watch):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json, text/plain, */*',
@@ -101,18 +98,16 @@ def check_tcdd_availability(watch):
         'Origin': 'https://ebilet.tcddtasimacilik.gov.tr',
         'Referer': 'https://ebilet.tcddtasimacilik.gov.tr/',
     }
-
     payload = {
         "seferSorgulamaKriterleri": {
             "binisIstasyon": watch['from_code'],
             "inisIstasyon": watch['to_code'],
-            "gidisTarih": watch['date'],  # Format: "2024-12-25 00:00:00"
+            "gidisTarih": watch['date'],
             "gidisDonusSecimi": 1,
             "yolcuSayisi": 1,
             "sonuc": "0"
         }
     }
-
     try:
         response = requests.post(
             'https://ebilet.tcddtasimacilik.gov.tr/view/eybis/tnmEybis/tcddWebApiProxy',
@@ -126,7 +121,6 @@ def check_tcdd_availability(watch):
             },
             timeout=15
         )
-
         if response.status_code == 200:
             data = response.json()
             trains = data.get('seferSorgulamaSonucList', [])
@@ -156,8 +150,9 @@ def check_all_watches():
     if not watches:
         return
 
-    logger.info(f"Kontrol ediliyor: {len(watches)} takip kaydı")
+    logger.info(f"Kontrol ediliyor: {len(watches)} takip")
     today = datetime.now().date()
+    base_url = config.get('render_url', '').strip().rstrip('/')
 
     for watch in watches:
         if not watch.get('active', True):
@@ -167,68 +162,68 @@ def check_all_watches():
         try:
             watch_date = datetime.strptime(watch_date_str[:10], '%Y-%m-%d').date()
             if watch_date < today:
-                log_notification(f"Geçmiş tarih atlandı: {watch.get('from_name')} → {watch.get('to_name')} ({watch_date_str})", "WARNING")
+                log_notification(f"Geçmiş tarih atlandı: {watch.get('from_name')} → {watch.get('to_name')}", "WARNING")
                 continue
         except:
             pass
 
-        available = check_tcdd_availability(watch)
-
+        available = check_availability(watch)
         if available is None:
             continue
 
+        user_email = watch.get('user_email') or config['email'].get('recipient_email', '')
+        cancel_token = watch.get('cancel_token', '')
+        cancel_link = f"{base_url}/iptal/{cancel_token}" if base_url and cancel_token else ''
+
         if available:
-            train_list = ""
+            train_rows = ""
             for t in available:
-                seat_detail = ", ".join([f"{k}: {v}" for k, v in t['seat_types'].items()]) if isinstance(t['seat_types'], dict) else str(t['seats'])
-                train_list += f"""
+                train_rows += f"""
                 <tr>
-                    <td style="padding:8px;border:1px solid #ddd;">{t['train_no']}</td>
-                    <td style="padding:8px;border:1px solid #ddd;">{t['departure']}</td>
-                    <td style="padding:8px;border:1px solid #ddd;">{t['arrival']}</td>
-                    <td style="padding:8px;border:1px solid #ddd;">{t['seats']} boş yer</td>
-                    <td style="padding:8px;border:1px solid #ddd;">{seat_detail}</td>
+                  <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;">{t['train_no']}</td>
+                  <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;">{t['departure']}</td>
+                  <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;">{t['arrival']}</td>
+                  <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#16A34A;font-weight:600;">{t['seats']} boş</td>
                 </tr>"""
 
-            subject = f"🚆 TCDD Bilet Bulundu! {watch['from_name']} → {watch['to_name']} ({watch_date_str[:10]})"
+            cancel_html = f'<div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0;text-align:center;"><a href="{cancel_link}" style="font-size:12px;color:#9CA3AF;text-decoration:underline;">Takibi iptal et</a></div>' if cancel_link else ''
+
+            subject = f"🎉 Bilet Bulundu! {watch['from_name']} → {watch['to_name']}"
             body = f"""
-            <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-            <div style="background:#CC0000;color:white;padding:20px;border-radius:8px 8px 0 0;">
-                <h2 style="margin:0;">🚆 TCDD Bilet Kontenjanı Açıldı!</h2>
-            </div>
-            <div style="background:#f9f9f9;padding:20px;border:1px solid #ddd;">
-                <p><strong>Güzergah:</strong> {watch['from_name']} → {watch['to_name']}</p>
-                <p><strong>Tarih:</strong> {watch_date_str[:10]}</p>
-                <p><strong>Bulunan tren sayısı:</strong> {len(available)}</p>
-                <table style="width:100%;border-collapse:collapse;margin-top:15px;">
-                    <tr style="background:#CC0000;color:white;">
-                        <th style="padding:8px;">Tren</th>
-                        <th style="padding:8px;">Kalkış</th>
-                        <th style="padding:8px;">Varış</th>
-                        <th style="padding:8px;">Boş Yer</th>
-                        <th style="padding:8px;">Detay</th>
-                    </tr>
-                    {train_list}
-                </table>
-                <div style="margin-top:20px;text-align:center;">
-                    <a href="https://ebilet.tcddtasimacilik.gov.tr" 
-                       style="background:#CC0000;color:white;padding:12px 24px;text-decoration:none;border-radius:5px;font-weight:bold;">
-                        Hemen Bilet Al →
-                    </a>
+            <html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F8F9FB;margin:0;padding:32px 16px;">
+            <div style="max-width:520px;margin:0 auto;">
+              <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                <div style="background:#2563EB;padding:24px 28px;">
+                  <div style="font-size:28px;margin-bottom:6px;">🎉</div>
+                  <h2 style="margin:0;color:#fff;font-size:20px;font-weight:700;">Bilet Kontenjanı Açıldı!</h2>
+                  <p style="margin:6px 0 0;color:#BFDBFE;font-size:14px;">{watch['from_name']} → {watch['to_name']} · {watch_date_str[:10]}</p>
                 </div>
+                <div style="padding:24px 28px;">
+                  <p style="margin:0 0 16px;font-size:14px;color:#374151;">{len(available)} tren için müsait koltuk bulundu:</p>
+                  <table style="width:100%;border-collapse:collapse;">
+                    <tr style="background:#F8F9FB;">
+                      <th style="padding:8px 12px;text-align:left;color:#6B7280;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Tren</th>
+                      <th style="padding:8px 12px;text-align:left;color:#6B7280;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Kalkış</th>
+                      <th style="padding:8px 12px;text-align:left;color:#6B7280;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Varış</th>
+                      <th style="padding:8px 12px;text-align:left;color:#6B7280;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Boş Yer</th>
+                    </tr>
+                    {train_rows}
+                  </table>
+                  <div style="margin-top:20px;text-align:center;">
+                    <a href="https://ebilet.tcddtasimacilik.gov.tr" style="display:inline-block;background:#2563EB;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Hemen Bilet Al →</a>
+                  </div>
+                  {cancel_html}
+                </div>
+              </div>
+              <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px;">Bilet Takip · {datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
             </div>
-            <div style="background:#333;color:#aaa;padding:10px;text-align:center;font-size:12px;border-radius:0 0 8px 8px;">
-                TCDD Bilet Takip Sistemi • {datetime.now().strftime('%d.%m.%Y %H:%M')}
-            </div>
-            </body></html>
-            """
-            send_email(subject, body, config)
-            log_notification(f"✅ Bilet bulundu: {watch['from_name']} → {watch['to_name']} ({len(available)} tren)")
+            </body></html>"""
+            send_email(subject, body, config, to_email=user_email)
+            log_notification(f"✅ Bilet bulundu: {watch['from_name']} → {watch['to_name']} ({len(available)} tren) → {user_email}")
         else:
             log_notification(f"❌ Müsait sefer yok: {watch['from_name']} → {watch['to_name']} ({watch_date_str[:10]})")
 
 def self_ping():
-    """Render'ın ücretsiz tierda uyku moduna girmesini engeller."""
     config = load_config()
     render_url = config.get('render_url', '').strip()
     if render_url:
@@ -238,7 +233,6 @@ def self_ping():
         except Exception as e:
             logger.warning(f"Self-ping başarısız: {e}")
 
-# Scheduler
 scheduler = BackgroundScheduler()
 
 def start_scheduler():
@@ -254,15 +248,14 @@ def start_scheduler():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'):
-        return redirect(url_for('index'))
+        return redirect(url_for('ayarlar'))
     error = None
     if request.method == 'POST':
         if request.form.get('password') == ADMIN_PASSWORD:
             session['logged_in'] = True
             session.permanent = True
-            return redirect(url_for('index'))
-        else:
-            error = 'Şifre yanlış.'
+            return redirect(url_for('ayarlar'))
+        error = 'Şifre yanlış.'
     return render_template('login.html', error=error)
 
 @app.route('/logout')
@@ -284,7 +277,28 @@ def index():
 def ping():
     return jsonify({"status": "ok", "time": datetime.now().isoformat()})
 
-# Tüm TCDD istasyonları (kod: ad)
+@app.route('/ayarlar', methods=['GET', 'POST'])
+@login_required
+def ayarlar():
+    config = load_config()
+    if request.method == 'POST':
+        config['email'] = {
+            'smtp_host': 'smtp.gmail.com',
+            'smtp_port': 587,
+            'sender_email': request.form.get('sender_email', ''),
+            'sender_password': request.form.get('sender_password', ''),
+            'recipient_email': request.form.get('recipient_email', ''),
+        }
+        config['check_interval_minutes'] = int(request.form.get('check_interval', 5))
+        config['render_url'] = request.form.get('render_url', '')
+        save_config(config)
+        if scheduler.get_job('check_watches'):
+            scheduler.remove_job('check_watches')
+        scheduler.add_job(check_all_watches, IntervalTrigger(minutes=config['check_interval_minutes']), id='check_watches')
+        flash('✅ Ayarlar kaydedildi!', 'success')
+        return redirect(url_for('ayarlar'))
+    return render_template('settings.html', config=config)
+
 ISTASYONLAR = [
     {"ad": "Adana", "kod": "99806"},
     {"ad": "Adana Havalimanı", "kod": "99814"},
@@ -355,33 +369,7 @@ def istasyon_ara():
     q = request.args.get('q', '').strip().lower()
     if len(q) < 2:
         return jsonify([])
-    sonuclar = [
-        i for i in ISTASYONLAR
-        if q in i['ad'].lower()
-    ]
-    return jsonify(sonuclar[:10])
-
-@app.route('/ayarlar', methods=['GET', 'POST'])
-@login_required
-def ayarlar():
-    config = load_config()
-    if request.method == 'POST':
-        config['email'] = {
-            'smtp_host': request.form.get('smtp_host', 'smtp.gmail.com'),
-            'smtp_port': int(request.form.get('smtp_port', 587)),
-            'sender_email': request.form.get('sender_email', ''),
-            'sender_password': request.form.get('sender_password', ''),
-            'recipient_email': request.form.get('recipient_email', ''),
-        }
-        config['check_interval_minutes'] = int(request.form.get('check_interval', 5))
-        config['render_url'] = request.form.get('render_url', '')
-        save_config(config)
-        if scheduler.get_job('check_watches'):
-            scheduler.remove_job('check_watches')
-        scheduler.add_job(check_all_watches, IntervalTrigger(minutes=config['check_interval_minutes']), id='check_watches')
-        flash('✅ Ayarlar kaydedildi!', 'success')
-        return redirect(url_for('ayarlar'))
-    return render_template('settings.html', config=config)
+    return jsonify([i for i in ISTASYONLAR if q in i['ad'].lower()][:10])
 
 @app.route('/add_watch', methods=['POST'])
 def add_watch():
@@ -393,27 +381,42 @@ def add_watch():
     except:
         date_formatted = date_input + ' 00:00:00'
 
+    user_email = request.form.get('user_email', '').strip()
     watch = {
         'id': int(datetime.now().timestamp()),
+        'cancel_token': secrets.token_urlsafe(24),
         'from_code': request.form.get('from_code', '').strip(),
         'from_name': request.form.get('from_name', '').strip(),
         'to_code': request.form.get('to_code', '').strip(),
         'to_name': request.form.get('to_name', '').strip(),
         'date': date_formatted,
+        'user_email': user_email,
         'active': True,
         'added': datetime.now().strftime('%d.%m.%Y %H:%M')
     }
 
-    if not all([watch['from_code'], watch['to_code'], date_input]):
+    if not all([watch['from_code'], watch['to_code'], date_input, user_email]):
         flash('❌ Lütfen tüm alanları doldurun.', 'error')
         return redirect(url_for('index'))
 
     config['watches'].append(watch)
     save_config(config)
-    flash(f"✅ Takip eklendi: {watch['from_name']} → {watch['to_name']}", 'success')
+    flash(f"✅ Takip eklendi: {watch['from_name']} → {watch['to_name']} · Bildirim: {user_email}", 'success')
     return redirect(url_for('index'))
 
+@app.route('/iptal/<token>')
+def iptal_watch(token):
+    config = load_config()
+    watch = next((w for w in config['watches'] if w.get('cancel_token') == token), None)
+    if not watch:
+        return render_template('cancel.html', success=False, message='Takip bulunamadı veya zaten iptal edilmiş.')
+    config['watches'] = [w for w in config['watches'] if w.get('cancel_token') != token]
+    save_config(config)
+    msg = f"{watch['from_name']} → {watch['to_name']} ({watch['date'][:10]}) takibi iptal edildi."
+    return render_template('cancel.html', success=True, message=msg)
+
 @app.route('/delete_watch/<int:watch_id>')
+@login_required
 def delete_watch(watch_id):
     config = load_config()
     config['watches'] = [w for w in config['watches'] if w.get('id') != watch_id]
@@ -422,6 +425,7 @@ def delete_watch(watch_id):
     return redirect(url_for('index'))
 
 @app.route('/toggle_watch/<int:watch_id>')
+@login_required
 def toggle_watch(watch_id):
     config = load_config()
     for w in config['watches']:
@@ -433,7 +437,7 @@ def toggle_watch(watch_id):
 @app.route('/check_now')
 def check_now():
     threading.Thread(target=check_all_watches).start()
-    flash('🔍 Kontrol başlatıldı! Birkaç saniye içinde sonuçlar logda görünecek.', 'info')
+    flash('🔍 Kontrol başlatıldı!', 'info')
     return redirect(url_for('index'))
 
 @app.route('/test_email')
@@ -442,21 +446,19 @@ def test_email():
     config = load_config()
     result = send_email(
         "Bilet Takip - Test E-postası",
-        "<h2>Test başarılı!</h2><p>E-posta bildirimleri düzgün çalışıyor.</p>",
+        "<h2 style='font-family:sans-serif'>Test başarılı! ✅</h2><p style='font-family:sans-serif'>E-posta bildirimleri düzgün çalışıyor.</p>",
         config
     )
-    if result:
-        flash('✅ Test e-postası gönderildi!', 'success')
-    else:
-        flash('❌ Test e-postası gönderilemedi. E-posta ayarlarını kontrol edin.', 'error')
+    flash('✅ Test e-postası gönderildi!' if result else '❌ Gönderilemedi. Ayarları kontrol edin.', 'success' if result else 'error')
     return redirect(url_for('ayarlar'))
 
 @app.route('/clear_logs')
+@login_required
 def clear_logs():
     if os.path.exists(LOG_FILE):
         os.remove(LOG_FILE)
     flash('🗑️ Loglar temizlendi.', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('ayarlar'))
 
 if __name__ == '__main__':
     start_scheduler()
