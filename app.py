@@ -253,42 +253,82 @@ def index():
 def ping():
     return jsonify({"status": "ok", "time": datetime.now().isoformat()})
 
+# Tüm TCDD istasyonları (kod: ad)
+ISTASYONLAR = [
+    {"ad": "Adana", "kod": "99806"},
+    {"ad": "Adana Havalimanı", "kod": "99814"},
+    {"ad": "Afyonkarahisar", "kod": "99807"},
+    {"ad": "Alayunt", "kod": "99808"},
+    {"ad": "Aliağa", "kod": "99851"},
+    {"ad": "Ankara Gar", "kod": "99828"},
+    {"ad": "Arifiye", "kod": "99801"},
+    {"ad": "Balıkesir", "kod": "99802"},
+    {"ad": "Bandırma", "kod": "99803"},
+    {"ad": "Bilecik", "kod": "99804"},
+    {"ad": "Bostankaya", "kod": "99815"},
+    {"ad": "Bozüyük", "kod": "99805"},
+    {"ad": "Büyükçekmece", "kod": "99847"},
+    {"ad": "Cerkezkoy", "kod": "99809"},
+    {"ad": "Ceyhan", "kod": "99810"},
+    {"ad": "Çankırı", "kod": "99811"},
+    {"ad": "Çerkezköy", "kod": "99809"},
+    {"ad": "Denizli", "kod": "99812"},
+    {"ad": "Derince", "kod": "99813"},
+    {"ad": "Divriği", "kod": "99816"},
+    {"ad": "Diyarbakır", "kod": "99817"},
+    {"ad": "Dumlupınar", "kod": "99818"},
+    {"ad": "Elazığ", "kod": "99819"},
+    {"ad": "Erzincan", "kod": "99820"},
+    {"ad": "Erzurum", "kod": "99821"},
+    {"ad": "Eskişehir", "kod": "99840"},
+    {"ad": "Gaziantep", "kod": "99822"},
+    {"ad": "Gebze", "kod": "99848"},
+    {"ad": "Halkalı", "kod": "99846"},
+    {"ad": "Haydarpaşa", "kod": "99823"},
+    {"ad": "İstanbul(Halkalı)", "kod": "99846"},
+    {"ad": "İstanbul(Pendik)", "kod": "99849"},
+    {"ad": "İstanbul(Söğütlüçeşme)", "kod": "99845"},
+    {"ad": "İzmir(Alsancak)", "kod": "99830"},
+    {"ad": "İzmir(Basmane)", "kod": "99831"},
+    {"ad": "Kars", "kod": "99824"},
+    {"ad": "Kayseri", "kod": "99834"},
+    {"ad": "Kırıkkale", "kod": "99841"},
+    {"ad": "Kırşehir", "kod": "99842"},
+    {"ad": "Konya", "kod": "99832"},
+    {"ad": "Kütahya", "kod": "99833"},
+    {"ad": "Malatya", "kod": "99835"},
+    {"ad": "Manisa", "kod": "99836"},
+    {"ad": "Mersin", "kod": "99837"},
+    {"ad": "Muş", "kod": "99838"},
+    {"ad": "Nallıhan", "kod": "99843"},
+    {"ad": "Niğde", "kod": "99839"},
+    {"ad": "Osmaneli", "kod": "99827"},
+    {"ad": "Pendik", "kod": "99849"},
+    {"ad": "Polatlı", "kod": "99844"},
+    {"ad": "Sakarya(Arifiye)", "kod": "99801"},
+    {"ad": "Samsun", "kod": "99850"},
+    {"ad": "Selçuk", "kod": "99852"},
+    {"ad": "Sivas", "kod": "99825"},
+    {"ad": "Söğütlüçeşme", "kod": "99845"},
+    {"ad": "Şanlıurfa", "kod": "99853"},
+    {"ad": "Tatvan", "kod": "99826"},
+    {"ad": "Tekirdağ", "kod": "99854"},
+    {"ad": "Uşak", "kod": "99855"},
+    {"ad": "Van", "kod": "99856"},
+    {"ad": "Yerköy", "kod": "99857"},
+    {"ad": "Zonguldak", "kod": "99858"},
+]
+
 @app.route('/istasyon-ara')
 def istasyon_ara():
-    q = request.args.get('q', '').strip()
+    q = request.args.get('q', '').strip().lower()
     if len(q) < 2:
         return jsonify([])
-    try:
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json, text/plain, */*',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Origin': 'https://ebilet.tcddtasimacilik.gov.tr',
-            'Referer': 'https://ebilet.tcddtasimacilik.gov.tr/',
-        }
-        resp = requests.post(
-            'https://ebilet.tcddtasimacilik.gov.tr/view/eybis/tnmEybis/tcddWebApiProxy',
-            headers=headers,
-            json={
-                "kanalKodu": "3",
-                "dil": "0",
-                "pageId": "IstasyonAra",
-                "jsonFor": json.dumps({"istasyonAdi": q})
-            },
-            timeout=8
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            istasyonlar = data.get('istasyonList', [])
-            sonuclar = [
-                {"ad": i.get("istasyonAdi", ""), "kod": str(i.get("istasyonKodu", ""))}
-                for i in istasyonlar
-                if i.get("istasyonAdi") and i.get("istasyonKodu")
-            ]
-            return jsonify(sonuclar[:10])
-    except Exception as e:
-        logger.warning(f"İstasyon arama hatası: {e}")
-    return jsonify([])
+    sonuclar = [
+        i for i in ISTASYONLAR
+        if q in i['ad'].lower()
+    ]
+    return jsonify(sonuclar[:10])
 
 @app.route('/settings', methods=['POST'])
 def save_settings():
