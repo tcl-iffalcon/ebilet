@@ -204,7 +204,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: var(--shadow-sm);
   }
 
@@ -600,12 +600,12 @@
 
 <!-- Stats -->
 <div class="stats-strip">
-  {% set active_count = config.watches | selectattr('active') | list | length %}
+  {% set active_count = user_watches | selectattr('active') | list | length %}
   <div class="stat-item">
     <div class="stat-dot" style="background:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.15);"></div>
     <div>
-      <div class="stat-num" style="color:var(--blue);">{{ config.watches | length }}</div>
-      <div class="stat-lbl">Toplam Takip</div>
+      <div class="stat-num" style="color:var(--blue);">{{ user_watches | length }}</div>
+      <div class="stat-lbl">Takibim</div>
     </div>
   </div>
   <div class="stat-item">
@@ -625,8 +625,8 @@
   <div class="stat-item">
     <div class="stat-dot" style="background:var(--text-3);"></div>
     <div>
-      <div class="stat-num" style="color:var(--text-2);">{{ config.watches | map(attribute='user_email') | unique | list | length }}</div>
-      <div class="stat-lbl">Farklı Kullanıcı</div>
+      <div class="stat-num" style="color:var(--text-2);">{{ config.watches | length }}</div>
+      <div class="stat-lbl">Tüm Takipler</div>
     </div>
   </div>
 </div>
@@ -669,7 +669,7 @@
           <div class="fg">
             <label>Seyahat Tarihi</label>
             <div class="dp-wrap" id="dpWrap">
-              <div class="dp-trigger" id="dpTrigger" onclick="toggleCal()">
+              <div class="dp-trigger" id="dpTrigger">
                 <span id="dpText" class="placeholder">Tarih seçin</span>
                 <span class="cal-ico">📅</span>
               </div>
@@ -695,12 +695,12 @@
   <!-- Watch List -->
   <div class="card">
     <div class="card-head">
-      <span class="card-title">📋 Takip Listesi</span>
-      <span style="font-size:11px;color:var(--text-3);font-family:'JetBrains Mono',monospace;">{{ config.watches | length }} kayıt</span>
+      <span class="card-title">📋 Takip Listem</span>
+      <span style="font-size:11px;color:var(--text-3);font-family:'JetBrains Mono',monospace;">{{ user_watches | length }} kayıt</span>
     </div>
     <div class="card-body">
-      {% if config.watches %}
-        {% for watch in config.watches %}
+      {% if user_watches %}
+        {% for watch in user_watches %}
         <div class="watch-item {% if not watch.get('active', True) %}inactive{% endif %}">
           <div class="w-dot {% if watch.get('active', True) %}active{% else %}inactive{% endif %}"></div>
           <div class="w-info">
@@ -716,18 +716,18 @@
             <a href="/toggle_watch/{{ watch.id }}" class="btn btn-ghost btn-sm" title="Duraklat/Devam">
               {% if watch.get('active', True) %}⏸{% else %}▶{% endif %}
             </a>
-            <a href="/delete_watch/{{ watch.id }}"
-               class="btn btn-danger btn-sm"
-               onclick="return confirm('Bu takibi silmek istediğinize emin misiniz?')"
-               title="Sil">🗑</a>
             {% endif %}
+            <a href="/iptal/{{ watch.cancel_token }}"
+               class="btn btn-danger btn-sm"
+               onclick="return confirm('Bu takibi iptal etmek istediğinize emin misiniz?')"
+               title="İptal Et">✕</a>
           </div>
         </div>
         {% endfor %}
       {% else %}
         <div class="empty">
           <div class="empty-ico">🔍</div>
-          Henüz takip eklenmedi.<br>Sol taraftan güzergah ve tarih seçin.
+          Henüz takip eklemediniz.<br>Sol taraftan güzergah ve tarih seçin.
         </div>
       {% endif %}
     </div>
@@ -802,26 +802,20 @@ function renderCal() {
     if (past) cls += ' disabled';
     if (isToday) cls += ' today';
     if (sel === ds) cls += ' selected';
-    days += `<div class="${cls}"${past ? '' : ` onclick="pickDate('${ds}')"`}>${d}</div>`;
+    days += `<div class="${cls}" data-date="${past ? '' : ds}">${d}</div>`;
   }
 
-  document.getElementById('dpPopup').innerHTML = `
+  const popup = document.getElementById('dpPopup');
+  popup.innerHTML = `
     <div class="cal-nav">
-      <button class="cal-nav-btn" onclick="moveCal(-1)" type="button">‹</button>
+      <button class="cal-nav-btn" data-move="-1" type="button">‹</button>
       <span class="cal-month">${TR_MONTHS[m]} ${y}</span>
-      <button class="cal-nav-btn" onclick="moveCal(1)" type="button">›</button>
+      <button class="cal-nav-btn" data-move="1" type="button">›</button>
     </div>
     <div class="cal-grid">
       ${TR_DAYS.map(d=>`<div class="cal-wd">${d}</div>`).join('')}
       ${days}
     </div>`;
-}
-
-function moveCal(dir) {
-  cal.m += dir;
-  if (cal.m > 11) { cal.m = 0; cal.y++; }
-  if (cal.m < 0)  { cal.m = 11; cal.y--; }
-  renderCal();
 }
 
 function pickDate(ds) {
@@ -835,6 +829,29 @@ function pickDate(ds) {
   document.getElementById('dpTrigger').classList.add('has-value');
   document.getElementById('dpPopup').classList.remove('open');
 }
+
+// Event delegation for calendar - prevents popup closing issues
+document.getElementById('dpPopup').addEventListener('click', e => {
+  e.stopPropagation();
+  const moveBtn = e.target.closest('[data-move]');
+  if (moveBtn) {
+    const dir = parseInt(moveBtn.dataset.move);
+    cal.m += dir;
+    if (cal.m > 11) { cal.m = 0; cal.y++; }
+    if (cal.m < 0)  { cal.m = 11; cal.y--; }
+    renderCal();
+    return;
+  }
+  const day = e.target.closest('.cal-day');
+  if (day && day.dataset.date) {
+    pickDate(day.dataset.date);
+  }
+});
+
+document.getElementById('dpTrigger').addEventListener('click', e => {
+  e.stopPropagation();
+  toggleCal();
+});
 
 document.addEventListener('click', e => {
   const wrap = document.getElementById('dpWrap');
