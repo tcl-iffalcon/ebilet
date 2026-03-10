@@ -1,13 +1,10 @@
 import os
 import json
 import logging
-import smtplib
 import requests
 import threading
 import secrets
 from datetime import datetime
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from functools import wraps
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 
@@ -36,10 +33,7 @@ def load_config():
     default = {
         "watches": [],
         "email": {
-            "smtp_host": "smtp.gmail.com",
-            "smtp_port": 587,
             "sender_email": "",
-            "sender_password": "",
             "recipient_email": ""
         },
         "check_interval_minutes": 5,
@@ -71,21 +65,34 @@ def log_notification(message, level="INFO"):
 def send_email(subject, body, config, to_email=None):
     email_cfg = config.get('email', {})
     recipient = to_email or email_cfg.get('recipient_email', '')
-    if not all([email_cfg.get('sender_email'), email_cfg.get('sender_password'), recipient]):
+    sender = email_cfg.get('sender_email', '')
+    resend_api_key = os.environ.get('RESEND_API_KEY', '')
+
+    if not all([sender, recipient, resend_api_key]):
         logger.warning("E-posta ayarları eksik.")
         return False
+
     try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = email_cfg['sender_email']
-        msg['To'] = recipient
-        msg.attach(MIMEText(body, 'html', 'utf-8'))
-        with smtplib.SMTP(email_cfg['smtp_host'], email_cfg['smtp_port']) as server:
-            server.starttls()
-            server.login(email_cfg['sender_email'], email_cfg['sender_password'])
-            server.send_message(msg)
-        log_notification(f"E-posta gönderildi: {subject} → {recipient}")
-        return True
+        response = requests.post(
+            'https://api.resend.com/emails',
+            headers={
+                'Authorization': f'Bearer {resend_api_key}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'from': f'Bilet Takip <{sender}>',
+                'to': [recipient],
+                'subject': subject,
+                'html': body
+            },
+            timeout=15
+        )
+        if response.status_code in (200, 201):
+            log_notification(f"E-posta gönderildi: {subject} → {recipient}")
+            return True
+        else:
+            log_notification(f"E-posta gönderilemedi: {response.status_code} {response.text}", "ERROR")
+            return False
     except Exception as e:
         log_notification(f"E-posta gönderilemedi: {e}", "ERROR")
         return False
@@ -265,7 +272,6 @@ def logout():
 
 @app.route('/')
 def index():
-    # Her ziyaretçiye benzersiz bir session ID ver
     if 'user_id' not in session:
         session['user_id'] = secrets.token_hex(16)
         session.permanent = True
@@ -273,7 +279,6 @@ def index():
     config = load_config()
     user_id = session['user_id']
 
-    # Admin tüm takipleri görür, kullanıcı sadece kendinkini
     if session.get('logged_in'):
         user_watches = config.get('watches', [])
     else:
@@ -296,10 +301,7 @@ def ayarlar():
     config = load_config()
     if request.method == 'POST':
         config['email'] = {
-            'smtp_host': 'smtp.gmail.com',
-            'smtp_port': 587,
             'sender_email': request.form.get('sender_email', ''),
-            'sender_password': request.form.get('sender_password', ''),
             'recipient_email': request.form.get('recipient_email', ''),
         }
         config['check_interval_minutes'] = int(request.form.get('check_interval', 5))
@@ -396,7 +398,6 @@ def add_watch():
 
     user_email = request.form.get('user_email', '').strip()
 
-    # Session ID yoksa oluştur
     if 'user_id' not in session:
         session['user_id'] = secrets.token_hex(16)
         session.permanent = True
